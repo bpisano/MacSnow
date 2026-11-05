@@ -1,0 +1,39 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Clear snow" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Déblayer la neige"
+          }
+        }
+      }
+    },
+    "Let it snow" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fais neiger"
+          }
+        }
+      }
+    },
+    "Quit MacSnow" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quitter MacSnow"
+          }
+        }
+      }
+    },
+    "MacSnow" : {
+      "shouldTranslate" : false
+    }
+  },
+  "version" : "1.0"
+}

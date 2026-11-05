@@ -1,0 +1,574 @@
+<title>Snow · v1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a live macOS desktop as the stage, a slim control rail beside it (stacks under on phones). */
+:root {
+  --bg: #eef2f6; --panel: #ffffff; --ink: #18212b; --muted: #5b6878; --line: #d5dde6; --accent: #2f6fb3; --accent-ink: #ffffff;
+  --wall-top: #8fa6bf; --wall-bottom: #c9d4df; --hill: #7d93ab;
+  --win: #fbfcfd; --win-bar: #eef1f4; --win-ink: #2a3440; --win-line: #d7dde4; --win-text: #c9d1da;
+  --menubar: rgba(246,248,250,.72); --menubar-ink: #1b222b; --menu: rgba(250,251,252,.94); --menu-hover: #2f6fb3; --menu-hover-ink: #fff;
+  --dock: rgba(255,255,255,.38); --dock-line: rgba(255,255,255,.55);
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --mac: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141b; --panel: #161d26; --ink: #e5ebf2; --muted: #93a1b2; --line: #26313e; --accent: #7fb2ea; --accent-ink: #0d1520;
+  --wall-top: #0b1422; --wall-bottom: #24344a; --hill: #172435;
+  --win: #232a33; --win-bar: #2b333d; --win-ink: #dbe3ec; --win-line: #39434f; --win-text: #3d4855;
+  --menubar: rgba(20,26,34,.62); --menubar-ink: #eef2f6; --menu: rgba(36,43,53,.95); --menu-hover: #3b7fd0; --menu-hover-ink: #fff;
+  --dock: rgba(40,50,64,.45); --dock-line: rgba(255,255,255,.14); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f141b; --panel: #161d26; --ink: #e5ebf2; --muted: #93a1b2; --line: #26313e; --accent: #7fb2ea; --accent-ink: #0d1520;
+  --wall-top: #0b1422; --wall-bottom: #24344a; --hill: #172435;
+  --win: #232a33; --win-bar: #2b333d; --win-ink: #dbe3ec; --win-line: #39434f; --win-text: #3d4855;
+  --menubar: rgba(20,26,34,.62); --menubar-ink: #eef2f6; --menu: rgba(36,43,53,.95); --menu-hover: #3b7fd0; --menu-hover-ink: #fff;
+  --dock: rgba(40,50,64,.45); --dock-line: rgba(255,255,255,.14); color-scheme: dark }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 28px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 28px; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+.displays { display: flex; gap: 14px; align-items: flex-end; min-width: 0; }
+.display { position: relative; flex: 1 1 0; min-width: 0; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10;
+  box-shadow: 0 0 0 6px #10151c, 0 18px 40px rgba(10,20,35,.25); background: #10151c; user-select: none; touch-action: none; }
+.display.secondary { flex: .62 1 0; }
+.display canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.display canvas.fx { pointer-events: none; z-index: 3; }
+.menubar { position: absolute; left: 0; right: 0; top: 0; height: 24px; z-index: 2; display: flex; align-items: center; gap: 14px; padding: 0 10px;
+  background: var(--menubar); color: var(--menubar-ink); font: 600 12.5px var(--mac); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.menubar .app { font-weight: 700; }
+.menubar .reg { font-weight: 400; }
+.menubar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.flake-btn { all: unset; display: grid; place-items: center; width: 26px; height: 20px; border-radius: 5px; cursor: pointer; position: relative; }
+.flake-btn:hover, .flake-btn[aria-expanded="true"] { background: rgba(127,140,160,.28); }
+.flake-btn:focus-visible { outline: 2px solid var(--accent); }
+.flake-btn svg { width: 15px; height: 15px; }
+.menu { position: absolute; top: 26px; z-index: 4; min-width: 176px; padding: 5px; border-radius: 9px; background: var(--menu); color: var(--menubar-ink);
+  font: 400 13px var(--mac); box-shadow: 0 10px 30px rgba(0,0,0,.28), 0 0 0 .5px rgba(0,0,0,.25); backdrop-filter: blur(20px); }
+.menu button { all: unset; display: flex; gap: 6px; align-items: center; width: calc(100% - 16px); padding: 4px 8px; border-radius: 5px; cursor: default; }
+.menu button:hover, .menu button:focus-visible { background: var(--menu-hover); color: var(--menu-hover-ink); }
+.menu .check { width: 14px; display: inline-block; text-align: center; }
+.menu hr { border: 0; height: 1px; background: rgba(127,140,160,.3); margin: 5px 8px; }
+.hint { position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%); z-index: 4; pointer-events: none;
+  font: 500 12px var(--mono); color: #fff; background: rgba(10,18,30,.66); padding: 6px 10px; border-radius: 6px; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
+
+aside { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 16px; min-width: 0; }
+.group { display: grid; gap: 8px; }
+.label { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { all: unset; padding: 6px 10px; border-radius: 7px; border: 1px solid var(--line); font-size: 13.5px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.screens { display: grid; gap: 4px; }
+.screens button { all: unset; display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.screens button small { grid-column: 2; color: var(--muted); font-size: 12.5px; }
+.screens button .n { font: 500 12px var(--mono); color: var(--muted); padding-top: 2px; }
+.screens button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.screens button[aria-pressed="true"] .n { color: var(--accent); }
+.screens button:focus-visible { outline: 2px solid var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.45; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Snow</h1>
+    <p>Preview des features v1, pas du design final. Neige jouable : attrape une fenêtre, balaie avec le curseur.</p>
+  </header>
+  <div class="stage">
+    <div class="displays" id="displays"></div>
+    <aside>
+      <div class="group">
+        <span class="label">Écran</span>
+        <div class="screens" id="screens"></div>
+      </div>
+      <div class="group">
+        <span class="label">État</span>
+        <div class="seg" id="state">
+          <button id="st-empty" data-v="empty" aria-pressed="false">Vide</button>
+          <button id="st-filled" data-v="filled" aria-pressed="true">Rempli</button>
+        </div>
+      </div>
+      <div class="group">
+        <span class="label">Thème</span>
+        <div class="seg" id="theme">
+          <button id="th-light" data-v="light" aria-pressed="false">Clair</button>
+          <button id="th-dark" data-v="dark" aria-pressed="false">Sombre</button>
+        </div>
+      </div>
+      <div class="group">
+        <span class="label">Langue du menu</span>
+        <div class="seg" id="lang">
+          <button id="lg-en" data-v="en" aria-pressed="true">en</button>
+          <button id="lg-fr" data-v="fr" aria-pressed="false">fr</button>
+        </div>
+      </div>
+      <div class="group">
+        <span class="label">Réglages du proto</span>
+        <div class="row"><span>Densité</span><span id="densityV">60</span></div>
+        <input id="density" type="range" min="10" max="160" value="60">
+        <div class="row"><span>Vent</span><span id="windV">0</span></div>
+        <input id="wind" type="range" min="-60" max="60" value="0">
+        <p class="note">Densité et vent restent fixes dans l'app v1 (réglages = Later). Ici pour juger l'effet.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+const COL = 3;
+const SCREENS = [
+  { id: "menu", n: "1", name: "Menu", sub: "Icône ❄ dans la barre, on / off" },
+  { id: "fall", n: "2", name: "Chute", sub: "Neige sur fenêtres, Dock, sol" },
+  { id: "shake", n: "3", name: "Fenêtre secouée", sub: "Tas suit, secousse = chute" },
+  { id: "sweep", n: "4", name: "Curseur", sub: "Le pointeur balaie les tas" },
+  { id: "multi", n: "5", name: "Multi-écran", sub: "Un overlay par écran" },
+];
+const HINTS = {
+  menu: "Clique ❄ en haut à droite → Let it snow",
+  fall: "La neige se pose sur les bords hauts, pas derrière une fenêtre",
+  shake: "Attrape une barre de titre, secoue de gauche à droite",
+  sweep: "Passe vite le curseur sur un tas",
+  multi: "Deux écrans, chacun son overlay",
+};
+const COPY = {
+  en: { on: "Let it snow", clear: "Clear snow", quit: "Quit Snow" },
+  fr: { on: "Fais neiger", clear: "Déblayer la neige", quit: "Quitter Snow" },
+};
+const state = { screen: "shake", fill: "filled", lang: "en", density: 60, wind: 0, snowing: true, menuOpen: false };
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let palette = {};
+function readPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ["wall-top","wall-bottom","hill","win","win-bar","win-ink","win-line","win-text","dock","dock-line"]) palette[k] = cs.getPropertyValue("--" + k).trim();
+}
+
+const rand = (a, b) => a + Math.random() * (b - a);
+function makeDrift(x, w, cap, taper) {
+  const n = Math.max(2, Math.ceil(w / COL));
+  const capArr = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const edge = Math.min(i, n - 1 - i) * COL;
+    capArr[i] = cap * (taper ? Math.min(1, 0.25 + edge / 18) : 1);
+  }
+  return { h: new Float32Array(n), cap: capArr, n };
+}
+
+class Display {
+  constructor(root, opts) {
+    this.root = root; this.opts = opts;
+    this.base = document.createElement("canvas"); this.fx = document.createElement("canvas"); this.fx.className = "fx";
+    root.append(this.base);
+    this.menubar = document.createElement("div"); this.menubar.className = "menubar";
+    root.append(this.menubar, this.fx);
+    this.hint = document.createElement("div"); this.hint.className = "hint"; root.append(this.hint);
+    this.flakes = []; this.grains = []; this.puffs = [];
+    this.drag = null; this.pointer = null; this.spawnAcc = 0;
+    this.resize();
+    new ResizeObserver(() => this.resize()).observe(root);
+    root.addEventListener("pointerdown", e => this.down(e));
+    root.addEventListener("pointermove", e => this.move(e));
+    root.addEventListener("pointerup", e => this.up(e));
+    root.addEventListener("pointercancel", e => this.up(e));
+    root.addEventListener("pointerleave", () => { this.pointer = null; });
+  }
+  resize() {
+    const r = this.root.getBoundingClientRect();
+    if (!r.width) return;
+    const old = this.W;
+    this.W = r.width; this.H = r.height; this.dpr = Math.min(devicePixelRatio || 1, 2);
+    for (const c of [this.base, this.fx]) { c.width = Math.round(this.W * this.dpr); c.height = Math.round(this.H * this.dpr); }
+    if (!old || Math.abs(old - this.W) > 2) this.layout();
+  }
+  layout() {
+    const W = this.W, H = this.H, s = W / 900;
+    const specs = this.opts.secondary
+      ? [{ t: "Notes", x: .14, y: .30, w: .62, h: .48, c: "#e3b341" }]
+      : [{ t: "Mail", x: .06, y: .16, w: .44, h: .50, c: "#3d8ee8" },
+         { t: "Safari", x: .34, y: .30, w: .44, h: .46, c: "#2fa7d8" },
+         { t: "Terminal", x: .63, y: .12, w: .30, h: .34, c: "#5c6670" }];
+    this.windows = specs.map(p => {
+      const w = { title: p.t, color: p.c, x: p.x * W, y: p.y * H, w: p.w * W, h: p.h * H, vx: 0, vy: 0, lastX: p.x * W, lastY: p.y * H, lean: 0, swing: [], };
+      w.drift = makeDrift(w.x, w.w, 16 * s + 4, true);
+      return w;
+    });
+    this.dock = this.opts.secondary ? null : (() => {
+      const dw = Math.min(W * .56, 520 * s + 120), dh = 46 * s + 8;
+      const d = { x: (W - dw) / 2, y: H - dh - 6, w: dw, h: dh };
+      d.drift = makeDrift(d.x, d.w, 12 * s + 3, true);
+      return d;
+    })();
+    this.ground = { x: 0, y: H, w: W, drift: makeDrift(0, W, 26 * s + 6, false) };
+    this.flakes = []; this.grains = []; this.puffs = [];
+    this.applyFill();
+  }
+  applyFill() {
+    const filled = state.fill === "filled";
+    for (const s of this.surfaces()) {
+      const d = s.drift;
+      for (let i = 0; i < d.n; i++) d.h[i] = filled ? d.cap[i] * (0.55 + 0.25 * Math.sin(i * 0.21 + s.x) + rand(0, .12)) : 0;
+    }
+    this.occlude();
+  }
+  surfaces() {
+    const out = this.windows.map((w, z) => ({ x: w.x, top: w.y, w: w.w, drift: w.drift, z, win: w }));
+    if (this.dock) out.push({ x: this.dock.x, top: this.dock.y, w: this.dock.w, drift: this.dock.drift, z: 99 });
+    out.push({ x: 0, top: this.H, w: this.W, drift: this.ground.drift, z: -1 });
+    return out;
+  }
+  coveredAt(x, y, z) {
+    for (let k = z + 1; k < this.windows.length; k++) {
+      const o = this.windows[k];
+      if (x >= o.x && x <= o.x + o.w && y >= o.y - 2 && y <= o.y + o.h) return true;
+    }
+    return false;
+  }
+  occlude() {
+    // Snow on a ledge hidden under a front window falls off.
+    this.windows.forEach((w, z) => {
+      const d = w.drift;
+      for (let i = 0; i < d.n; i++) {
+        if (d.h[i] > .5 && this.coveredAt(w.x + i * COL, w.y - d.h[i] * .5, z)) { this.spill(w.x + i * COL, w.y - d.h[i], d.h[i], 0, 0); d.h[i] = 0; }
+      }
+    });
+  }
+  spill(x, y, amount, vx, vy) {
+    const count = Math.min(4, Math.ceil(amount / 3));
+    for (let k = 0; k < count; k++) this.grains.push({ x: x + rand(-1.5, 1.5), y, vx: vx * rand(.5, 1) + rand(-25, 25), vy: vy + rand(-40, 10), r: rand(1.1, 2.4), vol: amount / count, lump: Math.random() });
+  }
+  local(e) { const r = this.root.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top, t: performance.now() }; }
+  down(e) {
+    if (e.target.closest(".menubar, .menu")) return;
+    closeMenus();
+    const p = this.local(e);
+    for (let k = this.windows.length - 1; k >= 0; k--) {
+      const w = this.windows[k];
+      if (p.x >= w.x && p.x <= w.x + w.w && p.y >= w.y && p.y <= w.y + w.h) {
+        this.windows.splice(k, 1); this.windows.push(w);
+        if (p.y <= w.y + 26) { this.drag = { w, dx: p.x - w.x, dy: p.y - w.y }; this.root.setPointerCapture(e.pointerId); }
+        this.occlude();
+        return;
+      }
+    }
+  }
+  move(e) {
+    const p = this.local(e);
+    const prev = this.pointer; this.pointer = p;
+    if (this.drag) {
+      const w = this.drag.w;
+      w.x = Math.max(-w.w * .5, Math.min(this.W - w.w * .5, p.x - this.drag.dx));
+      w.y = Math.max(26, Math.min(this.H - 40, p.y - this.drag.dy));
+      return;
+    }
+    if (!prev || !state.snowing && state.screen === "menu") return;
+    const dt = Math.max(1, p.t - prev.t) / 1000;
+    const vx = (p.x - prev.x) / dt, vy = (p.y - prev.y) / dt;
+    if (Math.hypot(vx, vy) < 120) return;
+    for (const s of this.surfaces()) {
+      const d = s.drift, i0 = Math.floor((p.x - s.x) / COL);
+      for (let i = i0 - 3; i <= i0 + 3; i++) {
+        if (i < 0 || i >= d.n || d.h[i] < .6) continue;
+        const top = s.top - d.h[i];
+        if (p.y > top - 5 && p.y < s.top + 3 && !this.coveredAt(s.x + i * COL, top, s.z)) {
+          const take = d.h[i] * .7; d.h[i] -= take;
+          this.spill(s.x + i * COL, top - 1, take, vx * .35, Math.min(vy * .3, -60) - 40);
+          if (Math.random() < .3) this.puffs.push({ x: s.x + i * COL, y: top, r: rand(3, 6), life: rand(.4, .7), age: 0, vx: vx * .1, vy: -20 });
+        }
+      }
+    }
+  }
+  up() { this.drag = null; }
+  landOn(x, y0, y1, skip) {
+    let best = null, bestY = Infinity;
+    for (const s of this.surfaces()) {
+      if (x < s.x || x >= s.x + s.w || s === skip) continue;
+      const i = Math.floor((x - s.x) / COL), d = s.drift;
+      const top = s.top - d.h[i];
+      if (top >= y0 && top <= y1 && top < bestY && !this.coveredAt(x, top, s.z)) { best = { s, i }; bestY = top; }
+    }
+    return best;
+  }
+  deposit(hit, vol) {
+    const d = hit.s.drift, i = hit.i;
+    if (d.h[i] >= d.cap[i]) return false;
+    d.h[i] += vol * .5;
+    if (i > 0) d.h[i - 1] += vol * .25;
+    if (i < d.n - 1) d.h[i + 1] += vol * .25;
+    return true;
+  }
+  step(dt, t) {
+    const W = this.W, H = this.H;
+    // Spawn.
+    if (state.snowing) {
+      const rate = state.density * (W / 900) * (reduceMotion ? .3 : 1);
+      this.spawnAcc += rate * dt;
+      while (this.spawnAcc >= 1) {
+        this.spawnAcc -= 1;
+        const size = Math.random() < .15 ? rand(2.6, 3.8) : rand(1, 2.4);
+        this.flakes.push({ x: rand(-40, W + 40), y: -6, size, fall: 22 + size * 14 + rand(0, 10), drift: rand(.6, 1.2), sway: rand(6, 18), rate: rand(.8, 1.8), phase: rand(0, 6.28), alpha: rand(.55, .95) });
+      }
+    }
+    // Window motion: velocity, swings, spill.
+    for (const w of this.windows) {
+      const vx = (w.x - w.lastX) / dt, vy = (w.y - w.lastY) / dt;
+      const ax = (vx - w.vx) / dt;
+      w.vx = vx; w.vy = vy; w.lastX = w.x; w.lastY = w.y;
+      w.lean += (-vx * .012 - w.lean) * Math.min(1, dt * 10);
+      const sign = Math.sign(vx);
+      if (Math.abs(vx) > 250 && sign !== w.lastSign) { w.swing.push(t); w.lastSign = sign; }
+      w.swing = w.swing.filter(s => t - s < .9);
+      const shake = w.swing.length >= 3 ? .35 : 0;
+      const jolt = Math.max(0, Math.abs(ax) - 6000) / 30000 + (vy < -500 ? .04 : 0) + shake * dt * 6;
+      if (jolt > 0) {
+        const d = w.drift;
+        for (let i = 0; i < d.n; i++) {
+          if (d.h[i] < .4 || Math.random() > .5) continue;
+          const take = d.h[i] * Math.min(1, jolt);
+          d.h[i] -= take;
+          this.spill(w.x + i * COL, w.y - d.h[i] - 1, take, vx * .6, vy * .5 - 30);
+        }
+      }
+      if (this.drag && this.drag.w === w) this.occlude();
+    }
+    // Flakes.
+    const wind = state.wind;
+    for (let k = this.flakes.length - 1; k >= 0; k--) {
+      const f = this.flakes[k];
+      f.phase += f.rate * dt;
+      const y0 = f.y;
+      f.y += f.fall * (1 + .12 * Math.sin(1.3 * f.phase)) * dt;
+      f.x += (f.drift * wind + f.sway * Math.cos(f.phase)) * dt;
+      const hit = this.landOn(f.x, y0, f.y + .01);
+      if (hit && this.deposit(hit, f.size * .55)) { this.flakes.splice(k, 1); continue; }
+      if (f.y > H + 10) this.flakes.splice(k, 1);
+    }
+    // Grains.
+    for (let k = this.grains.length - 1; k >= 0; k--) {
+      const g = this.grains[k];
+      g.vy += 820 * dt; g.vx *= Math.pow(.35, dt);
+      const y0 = g.y; g.x += g.vx * dt; g.y += g.vy * dt;
+      if (g.vy > 0) {
+        const hit = this.landOn(g.x, y0, g.y);
+        if (hit && this.deposit(hit, g.vol)) {
+          if (g.vy > 260 && Math.random() < .4) this.puffs.push({ x: g.x, y: g.y, r: rand(2, 5), life: rand(.3, .6), age: 0, vx: g.vx * .1, vy: -15 });
+          this.grains.splice(k, 1); continue;
+        }
+      }
+      if (g.y > H + 10 || g.x < -20 || g.x > W + 20) this.grains.splice(k, 1);
+    }
+    for (let k = this.puffs.length - 1; k >= 0; k--) {
+      const p = this.puffs[k]; p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.age > p.life) this.puffs.splice(k, 1);
+    }
+    // Settle: slump steep piles, overflow at caps, melt when off.
+    for (const s of this.surfaces()) {
+      const d = s.drift;
+      for (let i = 0; i < d.n - 1; i++) {
+        const diff = d.h[i] - d.h[i + 1];
+        if (Math.abs(diff) > 1.4) { const m = (Math.abs(diff) - 1.4) * .22 * Math.sign(diff); d.h[i] -= m; d.h[i + 1] += m; }
+      }
+      for (let i = 0; i < d.n; i++) {
+        if (d.h[i] > d.cap[i]) {
+          const extra = d.h[i] - d.cap[i]; d.h[i] = d.cap[i];
+          if (s.z >= 0 && s.z < 99 && (i < 3 || i > d.n - 4)) this.spill(s.x + i * COL, s.top - d.h[i], extra, i < 3 ? -20 : 20, 0);
+        }
+        if (!state.snowing) d.h[i] = Math.max(0, d.h[i] - dt * 2.2);
+      }
+    }
+  }
+  drawDrift(ctx, x, top, d, lean, t) {
+    if (!d.h.some(v => v > .3)) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, top + 1);
+    for (let i = 0; i < d.n; i++) {
+      const hx = x + i * COL + COL / 2 + lean * (d.h[i] / 10);
+      ctx.lineTo(hx, top - d.h[i]);
+    }
+    ctx.lineTo(x + d.n * COL, top + 1);
+    ctx.closePath();
+    const maxH = Math.max(...d.h);
+    const g = ctx.createLinearGradient(0, top - maxH, 0, top + 1);
+    g.addColorStop(0, "#fbfdff"); g.addColorStop(.55, "#e6edf6"); g.addColorStop(1, "#b9c6d8");
+    ctx.fillStyle = g; ctx.shadowColor = "rgba(20,35,60,.25)"; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1;
+    ctx.fill();
+    ctx.restore();
+    // Sparkles.
+    for (let i = 0; i < d.n; i += 7) {
+      const seed = Math.sin(i * 91.7 + x) * 43758.5 % 1;
+      if (seed < .82 || d.h[i] < 2) continue;
+      const tw = Math.pow(Math.max(0, Math.sin(t * (0.8 + seed * 2) + seed * 90)), 24);
+      if (tw < .05) continue;
+      ctx.fillStyle = `rgba(255,255,255,${tw})`;
+      ctx.fillRect(x + i * COL, top - d.h[i] + 1, 1.5, 1.5);
+    }
+  }
+  drawWindow(ctx, w) {
+    const r = 9;
+    ctx.save();
+    ctx.shadowColor = "rgba(10,20,35,.32)"; ctx.shadowBlur = 22; ctx.shadowOffsetY = 8;
+    ctx.beginPath(); ctx.roundRect(w.x, w.y, w.w, w.h, r); ctx.fillStyle = palette.win; ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(w.x, w.y, w.w, w.h, r); ctx.clip();
+    ctx.fillStyle = palette["win-bar"]; ctx.fillRect(w.x, w.y, w.w, 26);
+    ctx.fillStyle = palette["win-line"]; ctx.fillRect(w.x, w.y + 26, w.w, 1);
+    ["#ff5f57", "#febc2e", "#28c840"].forEach((c, i) => { ctx.beginPath(); ctx.arc(w.x + 14 + i * 17, w.y + 13, 5.2, 0, 7); ctx.fillStyle = c; ctx.fill(); });
+    ctx.fillStyle = palette["win-ink"]; ctx.font = "600 12px -apple-system, system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(w.title, w.x + w.w / 2, w.y + 17);
+    ctx.fillStyle = w.color; ctx.globalAlpha = .9; ctx.fillRect(w.x, w.y + 27, Math.min(120, w.w * .26), w.h - 27); ctx.globalAlpha = 1;
+    ctx.fillStyle = palette["win-text"];
+    const left = w.x + Math.min(120, w.w * .26) + 16;
+    for (let y = w.y + 44, k = 0; y < w.y + w.h - 12; y += 15, k++) ctx.fillRect(left, y, (w.w - (left - w.x) - 20) * (0.45 + ((k * 37) % 50) / 100), 6);
+    ctx.restore();
+  }
+  draw(t) {
+    const { W, H, dpr } = this;
+    const ctx = this.base.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, palette["wall-top"]); g.addColorStop(1, palette["wall-bottom"]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = palette.hill;
+    ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 20) ctx.lineTo(x, H * .72 + Math.sin(x / W * 5 + 1) * H * .05 + Math.sin(x / W * 13) * H * .015);
+    ctx.lineTo(W, H); ctx.fill();
+    this.drawDrift(ctx, 0, H, this.ground.drift, 0, t);
+    if (this.dock) {
+      const d = this.dock;
+      ctx.beginPath(); ctx.roundRect(d.x, d.y, d.w, d.h, 14); ctx.fillStyle = palette.dock; ctx.fill(); ctx.strokeStyle = palette["dock-line"]; ctx.stroke();
+      const icons = ["#3d8ee8", "#2fa7d8", "#e3b341", "#5c6670", "#e5534b", "#57ab5a", "#a371f7", "#f0883e"];
+      const size = d.h - 12, gap = (d.w - icons.length * size) / (icons.length + 1);
+      icons.forEach((c, i) => { ctx.beginPath(); ctx.roundRect(d.x + gap + i * (size + gap), d.y + 6, size, size, size * .23); ctx.fillStyle = c; ctx.fill(); });
+    }
+    this.windows.forEach(w => { this.drawWindow(ctx, w); this.drawDrift(ctx, w.x, w.y, w.drift, w.lean, t); });
+    if (this.dock) this.drawDrift(ctx, this.dock.x, this.dock.y, this.dock.drift, 0, t);
+    // FX layer: above the menu bar, like the overlay panel.
+    const fx = this.fx.getContext("2d");
+    fx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fx.clearRect(0, 0, W, H);
+    for (const f of this.flakes) {
+      const r = f.size;
+      const grad = fx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
+      grad.addColorStop(0, `rgba(248,250,255,${f.alpha})`); grad.addColorStop(.6, `rgba(225,232,244,${f.alpha * .8})`); grad.addColorStop(1, "rgba(200,210,228,0)");
+      fx.fillStyle = grad; fx.beginPath(); fx.arc(f.x, f.y, r, 0, 7); fx.fill();
+    }
+    for (const g2 of this.grains) {
+      fx.beginPath();
+      for (let a = 0; a < 6.28; a += .9) { const rr = g2.r * (1 + .18 * Math.sin(3 * a + g2.lump * 40)); fx.lineTo(g2.x + Math.cos(a) * rr, g2.y + Math.sin(a) * rr); }
+      fx.closePath(); fx.fillStyle = "#eef3fa"; fx.fill();
+    }
+    for (const p of this.puffs) {
+      const a = 1 - p.age / p.life;
+      fx.beginPath(); fx.arc(p.x, p.y, p.r * (1 + p.age * 3), 0, 7); fx.fillStyle = `rgba(240,245,252,${a * .35})`; fx.fill();
+    }
+  }
+}
+
+// Menu bar.
+const flakeSVG = filled => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${filled ? 2.4 : 1.6}" stroke-linecap="round" aria-hidden="true"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 2.5L15 4M9 20l3-2.5 3 2.5M3.8 10.4l3.7 1.6-.8 3.9M20.2 13.6l-3.7-1.6.8-3.9M5 15.5l3.9-1-.6-3.9M19 8.5l-3.9 1 .6 3.9"/></svg>`;
+const displays = [];
+function renderMenubar(d, primary) {
+  const c = COPY[state.lang];
+  d.menubar.innerHTML = `<span aria-hidden="true">&#63743;</span><span class="app">Finder</span><span class="reg">File</span><span class="reg">Edit</span><span class="reg">View</span>
+    <span class="right">${primary ? `<button class="flake-btn" id="flakeBtn" aria-haspopup="menu" aria-expanded="${state.menuOpen}" aria-label="Snow">${flakeSVG(state.snowing)}</button>` : ""}<span>Wed 4 Nov&nbsp;&nbsp;18:42</span></span>`;
+  const old = d.root.querySelector(".menu"); if (old) old.remove();
+  if (primary && state.menuOpen) {
+    const m = document.createElement("div"); m.className = "menu"; m.setAttribute("role", "menu");
+    m.innerHTML = `<button role="menuitemcheckbox" aria-checked="${state.snowing}" id="mi-toggle"><span class="check">${state.snowing ? "✓" : ""}</span>${c.on}</button>
+      <button role="menuitem" id="mi-clear"><span class="check"></span>${c.clear}</button><hr><button role="menuitem" id="mi-quit"><span class="check"></span>${c.quit}</button>`;
+    d.root.append(m);
+    const btn = d.root.querySelector("#flakeBtn");
+    const br = btn.getBoundingClientRect(), rr = d.root.getBoundingClientRect();
+    m.style.right = Math.max(4, rr.right - br.right - 6) + "px";
+    m.querySelector("#mi-toggle").onclick = () => { state.snowing = !state.snowing; state.menuOpen = false; save(); renderAllMenubars(); };
+    m.querySelector("#mi-clear").onclick = () => { displays.forEach(clearSnow); state.menuOpen = false; renderAllMenubars(); };
+    m.querySelector("#mi-quit").onclick = () => { state.snowing = false; state.menuOpen = false; displays.forEach(clearSnow); renderAllMenubars(); };
+  }
+  const btn = d.root.querySelector("#flakeBtn");
+  if (btn) btn.onclick = e => { e.stopPropagation(); state.menuOpen = !state.menuOpen; renderAllMenubars(); };
+  d.hint.textContent = primary ? HINTS[state.screen] : "";
+  d.hint.hidden = !primary;
+}
+function clearSnow(d) {
+  for (const s of d.surfaces()) { const dr = s.drift; for (let i = 0; i < dr.n; i++) if (dr.h[i] > .4) { d.spill(s.x + i * COL, s.top - dr.h[i], dr.h[i], rand(-20, 20), -20); } dr.h.fill(0); }
+  d.ground.drift.h.fill(0);
+}
+function renderAllMenubars() { displays.forEach((d, i) => renderMenubar(d, i === 0)); }
+function closeMenus() { if (state.menuOpen) { state.menuOpen = false; renderAllMenubars(); } }
+
+// Build displays per screen.
+const host = document.getElementById("displays");
+function buildDisplays() {
+  host.innerHTML = ""; displays.length = 0;
+  const count = state.screen === "multi" ? 2 : 1;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("div"); el.className = "display" + (i ? " secondary" : "");
+    host.append(el);
+    displays.push(new Display(el, { secondary: i > 0 }));
+  }
+  renderAllMenubars();
+}
+
+// Controls.
+const screensEl = document.getElementById("screens");
+SCREENS.forEach(s => {
+  const b = document.createElement("button"); b.id = "sc-" + s.id; b.dataset.v = s.id;
+  b.innerHTML = `<span class="n">${s.n}</span><span>${s.name}</span><small>${s.sub}</small>`;
+  b.onclick = () => setScreen(s.id);
+  screensEl.append(b);
+});
+function setScreen(id) {
+  state.screen = id;
+  if (id === "menu") { state.snowing = false; state.menuOpen = true; state.fill = "empty"; }
+  else { state.snowing = true; state.menuOpen = false; if (id === "fall") state.fill = "empty"; else state.fill = "filled"; }
+  sync(); buildDisplays();
+}
+function seg(id, key, after) {
+  document.getElementById(id).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    state[key] = b.dataset.v; sync(); after && after();
+  });
+}
+seg("state", "fill", () => displays.forEach(d => d.applyFill()));
+seg("lang", "lang", renderAllMenubars);
+seg("theme", "theme", () => { document.documentElement.dataset.theme = state.theme; save(); readPalette(); });
+for (const id of ["density", "wind"]) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => { state[id] = +el.value; document.getElementById(id + "V").textContent = el.value; });
+}
+function sync() {
+  document.querySelectorAll("#screens button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.screen));
+  document.querySelectorAll("#state button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.fill));
+  document.querySelectorAll("#lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.lang));
+  const theme = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.querySelectorAll("#theme button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === theme));
+}
+function save() { try { localStorage.setItem("snow-proto-theme", document.documentElement.dataset.theme || ""); } catch (e) {} }
+try { const t = localStorage.getItem("snow-proto-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readPalette(); sync(); });
+document.addEventListener("click", e => { if (!e.target.closest(".menu, .flake-btn")) closeMenus(); });
+
+readPalette(); sync(); buildDisplays();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  for (const d of displays) { if (!d.W) { d.resize(); continue; } d.step(dt, now / 1000); d.draw(now / 1000); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>

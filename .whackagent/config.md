@@ -1,0 +1,188 @@
+---
+# whackagent config — written by /wa-setup, edit freely.
+discussion_language: fr        # language Claude talk to you in
+code_language: en              # identifiers, comments, log messages, commits
+ui_strings_language: en        # user-facing strings (source; fr translated)
+pr_language: ""                # PR titles + bodies. Empty → discussion_language
+pr_title_prefix: false         # true → PR title starts with the commit prefix (`fix: …`): squash
+                               # merges then keep conventional commits on main. Not asked at setup.
+pr_screenshots:                # screenshots of changed screens in PR, at /wa-validate or /wa-close.
+                               # Ignore verify.mode: taken even under autopilot / off.
+  mode: off                    # no PR in flow (close.strategy: nothing) · was: auto — UI changed → new screen shots, changed screen before/after · off
+  width: 250                   # px in PR body, height auto (250 = iPhone)
+  replay: off                  # iOS: on — one XCUITest per task in <App>Screenshots, replayed before/after
+                               # (needs the target, wa-setup) · off — agent drives the app tap by tap
+primary_language: swift        # swift | typescript | generic | ...
+project_kind: app              # app | package | cli | server  (pick architecture module)
+
+paths:                         # WHERE whackagent keep each kind of file. Skills refer as
+                               # {backlog} {tasks} {wiki} {reports} {conventions} — never literal path.
+                               # Relative path resolve from repo root; absolute allowed
+                               # (wiki in sibling repo, say).
+                               # Point at committed, human-browsable folder when team share them —
+                               # `docs/wiki` read on GitHub, `.whackagent/wiki` no.
+                               # Missing key → default below, so old config still work.
+  backlog: .whackagent/BACKLOG.md
+  tasks: .whackagent/tasks
+  wiki: .whackagent/wiki
+  reports: .whackagent/reports          # run reports — usually local, gitignore-able
+  conventions: .whackagent/conventions  # convention modules copied here by /wa-setup
+                               # `.whackagent/config.md` itself NOT configurable: it carry these
+                               # paths, so must sit at known spot.
+                               # Move path after setup → move files too; nothing back-fill.
+
+tasks:                         # WHERE tasks live. See wa-board → Task store.
+  backend: files               # files  — one .md per task in {tasks}, order in {backlog}. Default.
+                               # github — one issue per task on a GitHub Project board. Task file
+                               #   {tasks}/<n>-<slug>.md lives on the task branch (truth); the issue
+                               #   holds title, summary, size, sprint, blockers. The plugin moves
+                               #   cards from pushes and merges, no GitHub Actions. Locks stop two
+                               #   people grilling or coding one task. Every round commits + pushes;
+                               #   one draft PR per task. {backlog} unused. Needs `gh` with `project`
+                               #   scope. See wa-board → Task store.
+                               # plane  — same flow, one work item per task on a Plane project (cloud
+                               #   or self-hosted). Code, branches, PRs stay on GitHub. Needs env
+                               #   WA_PLANE_TOKEN (Plane API key).
+  project: ""                  # github: <owner>/<number> of the board · plane: project URL. Set by /wa-setup.
+                               #   One board per repo, owned by whackagent.
+
+review:
+  when: on_validation          # WHEN wa-verifier run.
+                               #   on_validation — once, at /wa-validate: your green light say feature
+                               #     match spec, and THAT fire review over whole diff (code + every
+                               #     feedback round). Coding and feedback round stay fast; nothing
+                               #     reviewed while still moving.
+                               #   each_round — also after /wa-code and after every /wa-feedback fix.
+                               #     Catch drift earlier, cost verifier round each time. /wa-validate
+                               #     still run final pass.
+                               # Either way no task close unreviewed — /wa-close refuse task the
+                               # verifier never saw.
+  inline_micro_fixes: true     # /wa-feedback may apply MICRO-fix itself instead of spawn
+                               # implementer (~50k tokens context for one-liner). Bounded: ≤2 files,
+                               # ≤~20 lines, no new file/type/folder, no layer or public-API change.
+                               # Bigger, or any doubt → wa-implementer.
+                               # false → every change go through implementer, whatever size.
+  autofix: true                # wa-code verify phase re-dispatch implementer until clean
+  public_doc: true             # require doc on public API — flip false per company
+  modules: [style.md, elegance.md, swiftui.md, testing.md, architecture-global.md, architecture-app.md, apple.md, wording.md, glossary.md]
+                               # what single wa-verifier load before judging. Setup drop
+                               # swiftui.md if no SwiftUI, and swap architecture-app.md for
+                               # architecture-package.md. Paths relative to {conventions}.
+                               # Setup add apple.md when it exported Xcode's own SwiftUI
+                               # guidance into {conventions}/apple/ (Xcode 27+) — index only,
+                               # agents open one reference per topic they touch.
+                               # Setup add glossary.md (every project: one word per product
+                               # concept, used in UI, tasks, reports and what Claude say) and,
+                               # for UI project, wording.md + {conventions}/wording/ (UI copy
+                               # rules, project voice set at setup).
+                               # ONE verifier, not one per lens: isolated agent cost ~50k tokens
+                               # context before reading a line, and every lens judge same diff
+                               # against same rulebook — splitting pay twice, leave duplicate
+                               # findings to dedupe. It sweep style, elegance, structure and
+                               # correctness in one pass and report which ran.
+
+build:                         # how THIS project build — project win over plugin default
+  command: "xcodebuild -project MacSnow.xcodeproj -scheme MacSnow -destination platform=macOS -skipPackagePluginValidation -quiet build"  # was: e.g. "ign app", "make build", "./scripts/build.sh". Empty → XcodeBuildMCP
+                               # for Apple targets, `swift build` for SwiftPM, project runner otherwise.
+  test_command: "xcodebuild -project MacSnow.xcodeproj -scheme MacSnow -destination platform=macOS -skipPackagePluginValidation -quiet test"  # e.g. "make test". Empty → language default (`swift test`, …).
+
+lint:                          # strict linter wired into the build: violation = build error
+  tool: swiftlint              # swiftlint | eslint | ruff | golangci-lint | clippy | detekt | none
+                               # set by /wa-setup. Rules: project's linter config (from the
+                               # plugin templates, yours to edit). Agents never disable a rule.
+  fix_command: ""              # autofix before build, e.g. "make lint-fix". Empty → tool default.
+
+archtest:                      # architecture rules as unit tests: violation = red test
+  tool: none                   # harmonize | none. Set by /wa-setup. Rules: Architecture/ package
+                               # (from the plugin templates, yours to edit). Agents never touch it.
+  command: ""                  # e.g. "make archtest". Empty → swift test --package-path Architecture
+
+verify:                        # runtime check — implementer drive app it just built
+  mode: autopilot              # WHO exercise app after green build:
+                               #   autopilot — agent drive it in /wa-autopilot only (nobody there
+                               #     to test); attended /wa-code + /wa-feedback stop at build + tests and
+                               #     YOU validate by testing app yourself. Default for app targets.
+                               #   always — agent drive it every run, attended or not.
+                               #   off — agent never drive it; build + tests whole proof.
+                               # Under `autopilot` and `off` implementer may STILL launch app when
+                               # it can't write feature without seeing it run (reproduce bug, judge
+                               # layout, follow nav flow). That implementation, not proof: it drive
+                               # minimum it need and say so in NOTES.
+  platform: macos              # macos (this project) · ios | android | both  (ios drive via XcodeBuildMCP, else mobile-mcp)
+  target: device               # simulator | emulator | device
+
+commit:
+  auto_commit_after_validation: true    # may Claude commit once YOU validate feature?
+                               # (name kept for old configs: it gate the commit /wa-close make)
+                               # github backend: ignored — every round commit + push (board need it)
+                               # no author here, ever: each commit reads git config user.name/email
+                               # of the machine running it. Never "Claude", never Co-Authored-By.
+
+branch:
+  per_task: true               # /wa-code work on own branch per task instead of current one
+                               # github backend: always true — task file live on task branch
+  prefix: "wa/"                # branch name: <prefix><key> → wa/add-apple-login (github: wa/42-add-apple-login)
+  base: main                   # fork point: current | main | <branch name>
+  sprint_prefix: "sprint/"     # task carrying `sprint:` branch off SPRINT branch, not base:
+                               #   sprint/login-refacto   ← kebab of sprint "Login refacto",
+                               #                            created from base: on first task
+                               #   wa/add-apple-login     ← forked from it, merged back by /wa-close
+                               #   (github backend: wa/42-add-apple-login)
+                               # So task 3 of sprint see task 1 work — same screen, no blind conflict.
+                               # Created by whoever need it first: /wa-code step 0 or /wa-autopilot
+                               # wave setup. Empty string → sprint get no branch, tasks use base:.
+                               #   sprint/login-refacto-test ← LOCAL test branch: sprint + every
+                               #                            delivered task, rebuilt and checked out after
+                               #                            each delivery and at end of /wa-autopilot.
+                               #                            Launch project there, test whole sprint.
+                               #                            Never pushed, never landed.
+  checkout_next: true          # after /wa-close commit, hop onto next task branch
+                               # (only when per_task AND commit.auto_commit_after_validation)
+
+close:                         # WHERE work land when /wa-close finish a task. Task in a sprint
+                               # always merge into its sprint branch first — this block say what
+                               # happen to branch that has nowhere left to go (standalone task,
+                               # or sprint branch itself once its last task close).
+  strategy: nothing            # nothing — /wa-close stop after commit, branch left alone.
+                               #   YOU open the PR. Safest, and default.
+                               # pr     — push branch + open PR onto target: (`gh pr create`).
+                               #   No confirmation: /wa-close say branch → target + PR title, then do it.
+                               # merge  — merge branch into target: locally, no push.
+                               # github backend: ignored — task already has its draft PR;
+                               #   /wa-close rebase, push, mark it ready. YOU merge.
+  target: main                 # where pr/merge land. Ignored by `nothing`.
+  delete_branch: auto          # auto   — delete only once code live elsewhere (merged into sprint
+                               #   branch, or merged into target). `pr` and `nothing` keep it:
+                               #   PR need its branch, and so do you.
+                               # always — delete after close whatever happen. Ask first when
+                               #   branch unmerged — that throw work away.
+                               # never  — /wa-close never delete a branch.
+                               # Worktree for the slug (autopilot leftover) removed with it.
+
+autopilot:
+  on_blocker: skip-and-log     # never invent; freeze task, move on
+                               # autopilot ALWAYS branch per task, whatever branch.per_task say
+
+yagni: strict
+compress_wiki: true            # caveman-compress config + wiki pages to save re-read tokens
+                               # (at /wa-setup and after every /wa-wiki update; .original backups removed)
+---
+
+# Project config
+
+Free-form notes about this project every skill should keep in mind.
+Edit frontmatter above to change behavior.
+
+## Core rule — stop and ask
+
+Outside autopilot, moment anything unclear, ambiguous, or blocked beyond what task spec cover: **stop and ask**. Never guess on scope.
+
+**Every question come with recommended answer** — always, no exception. One line for pick, one line for why, plus alternative when real one exist. No basis to choose? Recommend most reversible option and say it guess. Bare question with no proposal never acceptable: answering must be confirm-or-correct, not homework.
+
+Inside autopilot: never ask (nobody watching) — freeze task with open question logged, move to next one.
+## Project notes
+
+- macOS app: menu bar + transparent overlay `NSPanel` per screen, Metal render. Snow settles on other apps' windows and Dock.
+- `MacSnow.xcodeproj` is committed and uses folder-synchronized groups (blue folders): adding, moving or deleting a file under `MacSnow/` or `MacSnowTests/` never touches the pbxproj. Only target/build-setting changes edit it.
+- Lint: `.swiftlint.yml` placed at setup; wiring (SwiftLintBuildToolPlugin) + baseline done by the task that creates the Xcode project.
+- XcodeBuildMCP macOS workflow may need enabling (https://xcodebuildmcp.com/docs/configuration).

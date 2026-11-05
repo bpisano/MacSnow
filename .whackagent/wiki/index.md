@@ -1,0 +1,19 @@
+# Wiki — Index
+
+Living knowledge base for this project. Pages link to each other and to tasks
+with `[[wikilink]]` syntax (Obsidian-compatible). Keep it current via `/wa-wiki`.
+
+## Pages
+
+- [glossary](../conventions/glossary.md) — one word per thing: concepts, screens, parts, flows
+
+- [[pitch]] — what we build, for whom, v1 scope
+- [[snow]] — how the snow is simulated and drawn, and the decisions behind it
+<!-- - [[architecture]] — overall structure -->
+<!-- - [[auth]] — authentication & accounts -->
+
+## How to read
+
+- A page describes a domain, decision, or subsystem — the *why* and the *shape*, not a copy of the code.
+- Tasks reference wiki pages in their `wiki:` frontmatter; wiki pages can link back to tasks.
+- The code is the structural truth; the wiki is the human narrative on top — it explains what reading the source can't tell you.

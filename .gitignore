@@ -1,0 +1,5 @@
+.whackagent/reports/
+.DS_Store
+xcuserdata/
+DerivedData/
+.build/
