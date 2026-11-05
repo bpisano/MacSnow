@@ -43,7 +43,7 @@ tasks:                         # WHERE tasks live. See wa-board → Task store.
                                # plane  — same flow, one work item per task on a Plane project (cloud
                                #   or self-hosted). Code, branches, PRs stay on GitHub. Needs env
                                #   WA_PLANE_TOKEN (Plane API key).
-  project: "bpisano/9"         # github: <owner>/<number> of the board · plane: project URL. Set by /wa-setup.
+  project: "bpisano/8"         # github: <owner>/<number> of the board · plane: project URL. Set by /wa-setup.
                                #   One board per repo, owned by whackagent.
 
 review:
