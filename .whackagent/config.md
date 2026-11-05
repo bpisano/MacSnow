@@ -32,7 +32,7 @@ paths:                         # WHERE whackagent keep each kind of file. Skills
                                # Move path after setup → move files too; nothing back-fill.
 
 tasks:                         # WHERE tasks live. See wa-board → Task store.
-  backend: files               # files  — one .md per task in {tasks}, order in {backlog}. Default.
+  backend: github              # files  — one .md per task in {tasks}, order in {backlog}. Default.
                                # github — one issue per task on a GitHub Project board. Task file
                                #   {tasks}/<n>-<slug>.md lives on the task branch (truth); the issue
                                #   holds title, summary, size, sprint, blockers. The plugin moves
@@ -43,7 +43,7 @@ tasks:                         # WHERE tasks live. See wa-board → Task store.
                                # plane  — same flow, one work item per task on a Plane project (cloud
                                #   or self-hosted). Code, branches, PRs stay on GitHub. Needs env
                                #   WA_PLANE_TOKEN (Plane API key).
-  project: ""                  # github: <owner>/<number> of the board · plane: project URL. Set by /wa-setup.
+  project: "bpisano/9"         # github: <owner>/<number> of the board · plane: project URL. Set by /wa-setup.
                                #   One board per repo, owned by whackagent.
 
 review:
